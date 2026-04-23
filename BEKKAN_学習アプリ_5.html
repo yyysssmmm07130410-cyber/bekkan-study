@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEKKAN 学習アプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--border:#2a2a2a;--accent:#c9a96e;--accent2:#e8c98a;--text:#f0ede8;--text2:#8a8680;--text3:#4a4845;--green:#4caf82;--red:#e05a5a;--radius:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
+.header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.2em;color:var(--accent);}
+.logo span{color:var(--text2);}
+.header-right{display:flex;align-items:center;gap:16px;}
+.score-bar{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);}
+.score-bar strong{color:var(--accent);}
+.home-link{font-size:12px;color:var(--text2);background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .2s;display:none;}
+.home-link:hover{border-color:var(--accent);color:var(--accent);}
+.home-link.visible{display:block;}
+.home{max-width:720px;margin:0 auto;padding:40px 24px;}
+.home-title{font-size:26px;font-weight:700;margin-bottom:6px;}
+.home-sub{color:var(--text2);font-size:14px;margin-bottom:36px;}
+.test-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:24px;}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.test-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity .2s;}
+.test-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.test-card:hover::before,.test-card.active::before{opacity:1;}
+.test-card.active{border-color:var(--accent);background:#1a1710;}
+.card-label{font-size:10px;letter-spacing:.15em;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.card-phase1{border-left:3px solid #2ebd8a;}
+.card-phase2{border-left:3px solid #4a90d9;}
+.card-phase3{border-left:3px solid #d4890a;}
+.card-title{font-size:14px;font-weight:500;margin-bottom:5px;}
+.card-meta{font-size:11px;color:var(--text2);}
+.card-progress{margin-top:10px;height:2px;background:var(--border);border-radius:1px;}
+.card-progress-fill{height:100%;background:var(--accent);border-radius:1px;transition:width .5s;}
+.section-head{font-size:11px;letter-spacing:.1em;color:var(--text2);margin-bottom:10px;}
+.mode-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.mode-btn{padding:7px 14px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;}
+.mode-btn:hover,.mode-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(201,169,110,.08);}
+.mode-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+.start-btn{width:100%;padding:15px;background:var(--accent);color:#0a0a0a;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;letter-spacing:.05em;}
+.start-btn:hover{background:var(--accent2);transform:translateY(-1px);}
+.start-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.quiz{max-width:680px;margin:0 auto;padding:32px 24px;display:none;}
+.quiz.active{display:block;}
+.progress-wrap{margin-bottom:28px;}
+.progress-info{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:8px;font-family:'DM Mono',monospace;}
+.progress-track{height:3px;background:var(--border);border-radius:2px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;}
+.q-category{font-size:10px;letter-spacing:.15em;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;}
+.q-type-badge{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:4px;font-size:10px;color:var(--text2);margin-bottom:14px;font-family:'DM Mono',monospace;}
+.q-text{font-size:17px;font-weight:500;line-height:1.75;margin-bottom:24px;}
+.choices{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;}
+.choice{padding:13px 17px;border:1px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;transition:all .15s;font-size:14px;line-height:1.5;text-align:left;color:var(--text);font-family:'Noto Sans JP',sans-serif;}
+.choice:hover:not(:disabled){border-color:var(--accent);background:rgba(201,169,110,.06);}
+.choice.correct{border-color:var(--green);background:rgba(76,175,130,.1);color:var(--green);}
+.choice.wrong{border-color:var(--red);background:rgba(224,90,90,.1);color:var(--red);}
+.choice.reveal{border-color:var(--green);background:rgba(76,175,130,.06);}
+.choice:disabled{cursor:default;}
+.input-wrap{margin-bottom:20px;}
+.input-hint{font-size:11px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:rgba(201,169,110,.06);border-radius:6px;border-left:2px solid var(--accent);}
+.answer-input{width:100%;padding:13px 17px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color .2s;resize:vertical;min-height:56px;}
+.answer-input:focus{border-color:var(--accent);}
+.answer-input.correct{border-color:var(--green);}
+.answer-input.wrong{border-color:var(--red);}
+.submit-btn{margin-top:10px;padding:11px 24px;background:var(--accent);color:#0a0a0a;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .2s;}
+.submit-btn:hover{background:var(--accent2);}
+.feedback{padding:14px;border-radius:10px;margin-bottom:18px;display:none;}
+.feedback.show{display:block;}
+.feedback.correct{background:rgba(76,175,130,.1);border:1px solid rgba(76,175,130,.3);}
+.feedback.wrong{background:rgba(224,90,90,.08);border:1px solid rgba(224,90,90,.25);}
+.feedback-label{font-size:11px;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:6px;}
+.feedback.correct .feedback-label{color:var(--green);}
+.feedback.wrong .feedback-label{color:var(--red);}
+.feedback-answer{font-size:13px;line-height:1.7;}
+.next-btn{width:100%;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;display:none;}
+.next-btn.show{display:block;}
+.next-btn:hover{border-color:var(--accent);color:var(--accent);}
+.result{max-width:560px;margin:0 auto;padding:48px 24px;display:none;text-align:center;}
+.result.active{display:block;}
+.result-icon{font-size:44px;margin-bottom:18px;}
+.result-score{font-family:'DM Mono',monospace;font-size:52px;font-weight:500;color:var(--accent);margin-bottom:6px;}
+.result-total{font-size:13px;color:var(--text2);margin-bottom:28px;}
+.result-message{font-size:17px;font-weight:500;margin-bottom:36px;}
+.result-breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:24px;}
+.breakdown-title{font-size:10px;letter-spacing:.1em;color:var(--text2);margin-bottom:14px;font-family:'DM Mono',monospace;}
+.breakdown-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.breakdown-row:last-child{border-bottom:none;}
+.breakdown-name{color:var(--text2);}
+.breakdown-val{font-family:'DM Mono',monospace;}
+.breakdown-val.ok{color:var(--green);}
+.breakdown-val.ng{color:var(--red);}
+.wrong-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:left;margin-bottom:20px;max-height:260px;overflow-y:auto;}
+.wrong-item{padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.wrong-item:last-child{border-bottom:none;}
+.wrong-item-q{color:var(--text2);margin-bottom:3px;}
+.wrong-item-a{color:var(--accent);}
+.result-btns{display:flex;gap:10px;}
+.result-btn{flex:1;padding:13px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Noto Sans JP',sans-serif;}
+.result-btn.primary{background:var(--accent);color:#0a0a0a;border:none;}
+.result-btn.primary:hover{background:var(--accent2);}
+.result-btn.secondary{background:transparent;border:1px solid var(--border);color:var(--text2);}
+.result-btn.secondary:hover{border-color:var(--accent);color:var(--accent);}
+@media(max-width:480px){.test-grid{grid-template-columns:1fr;}.result-btns{flex-direction:column;}.q-text{font-size:15px;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">BEKKAN<span> / 学習アプリ</span></div>
+  <div class="header-right">
+    <div class="score-bar" id="globalScore"></div>
+    <button class="home-link" id="homeLink" onclick="confirmGoHome()">← ホームへ</button>
+  </div>
+</div>
+
+<div class="home" id="homeView">
+  <div class="home-title">テスト学習</div>
+  <div class="home-sub">テストを選んで繰り返し学習しましょう。各テストは毎回ランダムで出題され、全問網羅を目指します。</div>
+  <div class="test-grid" id="testGrid"></div>
+  <div class="section-head">LEARNING MODE</div>
+  <div class="mode-btns">
+    <button class="mode-btn active" data-mode="all">全問出題（ランダム順）</button>
+    <button class="mode-btn" data-mode="random">ランダム15問</button>
+    <button class="mode-btn" data-mode="weak">苦手問題のみ</button>
+  </div>
+
+  <button class="start-btn" id="startBtn" onclick="startQuiz()" disabled>学習を開始する</button>
+</div>
+
+<div class="quiz" id="quizView">
+  <div class="progress-wrap">
+    <div class="progress-info"><span id="progressText">1 / 10</span><span id="scoreText">正解 0</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="q-category" id="qCategory"></div>
+  <div class="q-type-badge" id="qTypeBadge"></div>
+  <div class="q-text" id="qText"></div>
+  <div class="choices" id="choicesWrap"></div>
+  <div class="input-wrap" id="inputWrap" style="display:none">
+    <div class="input-hint">キーワードが含まれていれば正解と判定します（Enterで送信）</div>
+    <textarea class="answer-input" id="answerInput" placeholder="答えを入力してください" rows="2" onkeydown="handleEnter(event)"></textarea>
+    <button class="submit-btn" onclick="submitFree()">回答する</button>
+  </div>
+  <div class="feedback" id="feedback">
+    <div class="feedback-label" id="feedbackLabel"></div>
+    <div class="feedback-answer" id="feedbackAnswer"></div>
+  </div>
+  <button class="next-btn" id="nextBtn" onclick="nextQ()">次の問題へ →</button>
+</div>
+
+<div class="result" id="resultView">
+  <div class="result-icon" id="resultIcon"></div>
+  <div class="result-score" id="resultScore"></div>
+  <div class="result-total" id="resultTotal"></div>
+  <div class="result-message" id="resultMessage"></div>
+  <div class="wrong-list" id="wrongList" style="display:none">
+    <div class="breakdown-title">間違えた問題</div>
+    <div id="wrongItems"></div>
+  </div>
+  <div class="result-breakdown" id="resultBreakdown"></div>
+  <div class="result-btns">
+    <button class="result-btn primary" onclick="retryWeak()" id="retryWeakBtn">苦手問題を復習</button>
+    <button class="result-btn secondary" onclick="goHome()">ホームへ戻る</button>
+  </div>
+</div>
+
+<script>
+const TESTS={
+  runner:{id:'runner',label:'PHASE 1',title:'ランナー業務テスト',randomPick:15,
+    questions:[
+      {sec:'グラスの洗い方',type:'○×',q:'グラスはまず二又スポンジでグラスの口が付く部分をよく洗ってから洗浄機にかける。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'グロスを取るために口部分を先に洗うことが重要'},
+      {sec:'グラスの洗い方',type:'4択',q:'ショットグラスを洗浄機にかけてはいけない理由はどれか？',choices:['割れやすいから','グラスが熱くなりすぐ使えないから','洗浄機が汚れるから','油が溜まるから'],answer:'グラスが熱くなりすぐ使えないから',keys:[],pt:1,note:'ショットグラスは洗剤のみで水洗い'},
+      {sec:'グラスの洗い方',type:'4択',q:'グラスを拭く際に使うタオルはどれか？',choices:['緑刺繍の食器拭き','赤・黄刺繍のグラスタオル','灰皿用ダスター','普通のタオル'],answer:'赤・黄刺繍のグラスタオル',keys:[],pt:1,note:'グラスタオルと食器拭きは別物'},
+      {sec:'グラスの洗い方',type:'○×',q:'グラスをトレンチで運ぶ際、できるだけ多く乗せてまとめて運ぶのが効率的である。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'無理に乗せずスペースを空けて運ぶ。クラッシュ防止のため'},
+      {sec:'グラスの洗い方',type:'穴埋',q:'グラス拭き後、汚れ（特に＿＿＿）が残っていないか必ず確認すること。',choices:[],answer:'グロス',keys:['グロス','グロ'],pt:1,note:'口紅などのグロスが残りやすい'},
+      {sec:'グラス早回し',type:'4択',q:'早回し指示を受けた際、最優先で洗うグラスの組み合わせとして正しいものはどれか？',choices:['ワイングラス・シャンパングラス・コリンズ','10タン・チェイサー・ロック・焼酎・コリンズ・ショット','コリンズ・ショット・ワイングラス','10タン・ショット・シャンパングラス'],answer:'10タン・チェイサー・ロック・焼酎・コリンズ・ショット',keys:[],pt:1,note:'脚付きグラスは早回し対象外'},
+      {sec:'グラス早回し',type:'○×',q:'早回し中、脚付きグラス（ワイン・シャンパン）は外側だけ拭いてBarに返してよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'脚付きグラスは中まで拭かないと使えない'},
+      {sec:'グラス早回し',type:'穴埋',q:'早回し指示を受けた際、洗い場に優先グラスがなければ＿＿＿を回り優先グラスだけ選んで洗い場に持って行く。',choices:[],answer:'下げ物が置いてある箇所',keys:['下げ物','下げ'],pt:1,note:'ホール全体の下げ物置き場を確認する'},
+      {sec:'食器・シルバーの洗い方',type:'○×',q:'食器は基本的に洗浄機にかけてよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'油が洗浄機に溜まるため、食器は手洗いが基本'},
+      {sec:'食器・シルバーの洗い方',type:'4択',q:'食器を拭く際に使うタオルはどれか？',choices:['赤・黄刺繍のグラスタオル','緑刺繍の食器拭き','灰皿用ダスター','白タオル'],answer:'緑刺繍の食器拭き',keys:[],pt:1,note:'色別でタオルを使い分ける'},
+      {sec:'食器・シルバーの洗い方',type:'4択',q:'洗浄済み食器をキッチンへ持って行くタイミングとして正しいものはどれか？',choices:['すぐに持って行く','フードを取りに行く際・トイレチェックに行く際','営業終了後まとめて','Barに返す際'],answer:'フードを取りに行く際・トイレチェックに行く際',keys:[],pt:1,note:'移動のついでに持って行くことで効率化'},
+      {sec:'食器・シルバーの洗い方',type:'4択',q:'洗浄後にBarに返すシルバーの組み合わせとして正しいものはどれか？',choices:['大スプーン・大フォーク・ナイフ','姫フォーク・姫スプーン・アイストング・マドラー・フルーツトング','大フォーク・姫フォーク・ナイフ','マドラー・大スプーン・バターナイフ'],answer:'姫フォーク・姫スプーン・アイストング・マドラー・フルーツトング',keys:[],pt:1,note:'大スプーン・大フォーク・ナイフは洗浄済シルバー入れへ'},
+      {sec:'食器・シルバーの洗い方',type:'穴埋',q:'ホールの食器として洗い場に置いておく食器を2種類答えよ。',choices:[],answer:'取り皿・小アミューズ皿',keys:['取り皿','アミューズ'],pt:1,note:'この2つはキッチンに持って行かない'},
+      {sec:'灰皿の洗い方・補充',type:'○×',q:'灰皿を洗う際、洗剤を使って洗うのが正しい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'灰皿は水洗いのみ。洗剤は使わない'},
+      {sec:'灰皿の洗い方・補充',type:'4択',q:'灰皿を拭く際に使うのはどれか？',choices:['グラスタオル（赤・黄）','食器拭き（緑）','灰皿用ダスター','普通のタオル'],answer:'灰皿用ダスター',keys:[],pt:1,note:'灰皿専用のダスターを使う'},
+      {sec:'灰皿の洗い方・補充',type:'穴埋',q:'灰皿が洗い場に何枚溜まったら定数補充しに行くか？',choices:[],answer:'10枚',keys:['10'],pt:1,note:'10枚溜まったら補充のタイミング'},
+      {sec:'灰皿の洗い方・補充',type:'4択',q:'B1のF9側ステーションへの灰皿補充定数として正しいものはどれか？',choices:['上に3枚×2、中に3枚','上に5枚×2、中に5枚','上に10枚、中に5枚','上に5枚のみ'],answer:'上に5枚×2、中に5枚',keys:[],pt:1,note:'各ステーションの定数を覚える'},
+      {sec:'おしぼりの仕分け',type:'4択',q:'当店で使い分けている2種類のおしぼりはどれか？',choices:['新しぼと古しぼ','新しぼと旧しぼ','白しぼと黒しぼ','大しぼと小しぼ'],answer:'新しぼと旧しぼ',keys:[],pt:1,note:'回収場所がそれぞれ異なる'},
+      {sec:'おしぼりの仕分け',type:'○×',q:'新しぼと旧しぼは同じ回収箱に入れてよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'それぞれ異なる回収箱に仕分ける'},
+      {sec:'その他備品処理',type:'4択',q:'ビン類・缶類を洗い場に持ってきた場合の正しい対応はどれか？',choices:['そのまま洗い場で処理する','ウェイターに渡すかグラスをBarに戻す際に一緒に渡す','ゴミ箱に捨てる','センターに渡す'],answer:'ウェイターに渡すかグラスをBarに戻す際に一緒に渡す',keys:[],pt:1,note:'ビン・缶のゴミ箱はBarにある'},
+      {sec:'その他備品処理',type:'○×',q:'空になったガス缶は屋内でガス抜きしてからガス缶入れに入れてよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'ガス抜きは社員が営業後に行う。屋内での勝手なガス抜きは絶対禁止'},
+      {sec:'その他備品処理',type:'穴埋',q:'断線したコードや点かなくなった電球は何入れに入れるか？',choices:[],answer:'廃棄電化製品入れ',keys:['廃棄','電化'],pt:1,note:'廃棄電化製品入れに正しく分別する'},
+      {sec:'クラッシュ対応',type:'4択',q:'クラッシュが発生した際、その場にいるスタッフ全員がまず行うべきことはどれか？',choices:['すぐ片付ける','お客様に向けて「失礼しました！」と謝罪する','センターを呼ぶ','何もしない'],answer:'お客様に向けて「失礼しました！」と謝罪する',keys:[],pt:1,note:'近い・遠いに関わらず全員が謝罪する'},
+      {sec:'クラッシュ対応',type:'○×',q:'インカムでクラッシュを報告する際は「クラッシュです」とだけ伝えればよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'「〜（具体的な場所）でクラッシュです」と場所を必ず伝える'},
+      {sec:'クラッシュ対応',type:'穴埋',q:'クラッシュ時、ステーションからかわしぼを何枚持ってくるか？',choices:[],answer:'5枚',keys:['5'],pt:1,note:'かわしぼを5枚持ってきて対処する'},
+      {sec:'クラッシュ対応',type:'4択',q:'クラッシュで使ったかわしぼの処理方法として正しいものはどれか？',choices:['洗い場で洗って再利用する','燃えるゴミに捨てる','旧しぼの回収箱に入れる','Barに返す'],answer:'燃えるゴミに捨てる',keys:[],pt:1,note:'使ったかわしぼはすべて燃えるゴミへ'},
+      {sec:'アップ業務',type:'4択',q:'アップ時にテーブルを拭く際に使うものはどれか？',choices:['グラスタオル','食器拭き','卓にある綺麗なおしぼり','かわしぼ'],answer:'卓にある綺麗なおしぼり',keys:[],pt:1,note:'卓にある綺麗なおしぼりでテーブルを拭く'},
+      {sec:'アップ業務',type:'穴埋',q:'アップ時にテーブルに残しておく物を3つ答えよ。',choices:[],answer:'キャンドル・未使用の灰皿・リザーブ',keys:['キャンドル','灰皿','リザーブ'],pt:2,note:'この3点は片さずに残しておく'},
+      {sec:'アップ業務',type:'○×',q:'ビン・缶・シャンパンクーラーはアップ時に洗い場で処理する。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'ビン・缶・シズラー・シャンパンクーラーはBarで処理'},
+      {sec:'買い出し',type:'4択',q:'買い出しを頼まれた際、必ず確認すべき3点はどれか？',choices:['何を・いくらで・どこで買うか','何を・何個・誰に渡すか','何を・いつまでに・どこで買うか','銘柄・個数・支払い方法'],answer:'何を・何個・誰に渡すか',keys:[],pt:1,note:'この3点を必ず確認してから買い出しへ'},
+      {sec:'買い出し',type:'○×',q:'買い出し後、領収書を受け取ってセンターに渡せばよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'レシートを受け取ること。領収書では購入商品の詳細が分からない'},
+      {sec:'トイレチェック',type:'穴埋',q:'席から立たれてフロント方向へ向かうお客様の約何割はお手洗いに向かわれているか？',choices:[],answer:'9割',keys:['9'],pt:1,note:'9割はお手洗いへ。積極的に声をかけてご案内する'},
+      {sec:'トイレチェック',type:'4択',q:'トイレチェックの頻度として正しいものはどれか？',choices:['30分に1回','1時間に1回','原則5分に1回','お客様が使用したらその都度'],answer:'原則5分に1回',keys:[],pt:1,note:'5分に1回が基本。常に清潔な状態を保つ'},
+      {sec:'トイレチェック',type:'穴埋',q:'トイレチェック時のタウパー補充のタイミングを答えよ。',choices:[],answer:'半分を切ったら満タンに補充',keys:['半分','1/2'],pt:1,note:'半分を切ったタイミングで補充する'},
+      {sec:'トイレチェック',type:'穴埋',q:'トイレの個室清掃でタウパーを使用した後の処理方法を答えよ。',choices:[],answer:'ゴミ袋に捨てる（便器に流さない）',keys:['ゴミ袋','捨て','流さない'],pt:2,note:'タウパーは絶対に便器に流さないこと'},
+    ]},
+  koto:{id:'koto',label:'PHASE 2',title:'口頭研修 理解度テスト',randomPick:15,
+    questions:[
+      {sec:'伝票・BTL・タバコ対応',type:'4択',q:'伝票でファーストドリンクを取った際、客数欄に書く記号はどれか？',choices:['F','N','L','＊'],answer:'N',keys:[],pt:1,note:'バーテンダーがファーストとして優先的に作るため'},
+      {sec:'伝票・BTL・タバコ対応',type:'○×',q:'女性会員のドリンクは品名を○で囲む。この○は非常に重要で付け忘れてはならない。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'グラスの種類・量が異なるため区別が必須'},
+      {sec:'伝票・BTL・タバコ対応',type:'4択',q:'ウイスキーの水割りを注文された際の伝票の書き方はどれか？',choices:['ウイスキー水割り','ウイスキー/水割り','水割りウイスキー','ウイスキー・水'],answer:'ウイスキー/水割り',keys:[],pt:1,note:'お酒の名前/割り方 の形式'},
+      {sec:'伝票・BTL・タバコ対応',type:'○×',q:'バーにインカムでオーダーを通すことは基本的に禁止されている。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'やむを得ない場合のみ可。基本は伝票で'},
+      {sec:'伝票・BTL・タバコ対応',type:'穴埋',q:'ラストオーダー時、伝票の客数欄に書く記号を答えよ。',choices:[],answer:'L',keys:['L'],pt:1,note:'Lがラストオーダーの合図'},
+      {sec:'伝票・BTL・タバコ対応',type:'4択',q:'タバコの伝付け対応で正しいものはどれか？',choices:['すぐ伝票付けOKと伝える','基本は現金払い。伝票付けはセンター・エスコートに確認','断る','センターに任せる'],answer:'基本は現金払い。伝票付けはセンター・エスコートに確認',keys:[],pt:1,note:'一部のお客様には許可あり。必ず確認が必要'},
+      {sec:'伝票・BTL・タバコ対応',type:'4択',q:'BTLシャンパン・ワインを注文された際、メニューで確認する2点はどれか？',choices:['値段と本数','銘柄名とボトルの番号','値段と銘柄名','色と銘柄名'],answer:'銘柄名とボトルの番号',keys:[],pt:1,note:'値段での確認はお客様に失礼になる可能性があるためNG'},
+      {sec:'ファースト対応・サービス基礎',type:'4択',q:'ファーストドリンクの提供が4分以上かかりそうな場合の対応はどれか？',choices:['そのまま待つ','口頭で謝罪のみ','ゲスト人数分のサービスシャンパンを提供','別のドリンクを勧める'],answer:'ゲスト人数分のサービスシャンパンを提供',keys:[],pt:1,note:'遅延時の標準対応。文言も覚える'},
+      {sec:'ファースト対応・サービス基礎',type:'4択',q:'ドリンク提供の優先順位として正しいものはどれか？',choices:['女性会員→ゲスト→エスコート','ゲスト→女性会員→エスコート→マネージャー','エスコート→ゲスト→女性会員','ゲスト→エスコート→女性会員'],answer:'ゲスト→女性会員→エスコート→マネージャー',keys:[],pt:1,note:'この順番は絶対に覚える'},
+      {sec:'ファースト対応・サービス基礎',type:'○×',q:'ドリンクを提供する際、上座のお客様から提供するのが正しい。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'上座から提供が基本ルール'},
+      {sec:'ファースト対応・サービス基礎',type:'穴埋',q:'女性会員のドリンクをオーダーする際、まずゲストに「よろしければ女性の＿＿もご用意させていただいてよろしいでしょうか？」と伺う。',choices:[],answer:'お飲み物',keys:['お飲み物','飲み物'],pt:1,note:'必ずゲストへの許可が先'},
+      {sec:'ファースト対応・サービス基礎',type:'4択',q:'上着やコートをお預かりするタイミングとして正しいものはどれか？',choices:['入室後すぐ・おしぼり提供後','ファーストドリンク後','お客様から申し出があったとき','センターの指示があったとき'],answer:'入室後すぐ・おしぼり提供後',keys:[],pt:1,note:'着席後すぐに声かけ。貴重品の有無も確認する'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'穴埋',q:'卓に入るたびに確認すべき4点を答えよ。',choices:[],answer:'グラス・灰皿・女性・未提供',keys:['グラス','灰皿','女性','未提供'],pt:2,note:'2秒以内に確認できることが目標'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'○×',q:'BAR上がりのドリンクは他の業務が終わってから取りに行けばよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'出来上がったドリンクを放置してはならない。回収→提供まで1セット'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'4択',q:'灰皿交換の正しい手順はどれか？',choices:['古い灰皿を下げてから新しいものを置く','新しい灰皿を古い灰皿の上に重ねて2枚まとめて下げる','吸い殻が3本になったら交換','センターに任せる'],answer:'新しい灰皿を古い灰皿の上に重ねて2枚まとめて下げる',keys:[],pt:1,note:'灰が飛ぶのを防ぐため上に重ねてから下げる'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'4択',q:'おしぼりを新たに提供するタイミングをすべて含む選択肢はどれか？',choices:['お手洗い後のみ','フード提供時・お手洗い後・テキーラが出た際','テキーラが出た際のみ','お代わりのたびに'],answer:'フード提供時・お手洗い後・テキーラが出た際',keys:[],pt:1,note:'3つのタイミングを正確に覚える'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'○×',q:'新しく着いた女性・入れ替わった女性を認識してドリンク確認につなげることは重要な業務のひとつである。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'女性変更を見逃すと提供漏れ・DBミスにつながる'},
+      {sec:'卓管理・4点確認・灰皿・おしぼり',type:'4択',q:'ファースト対応時にアミューズを提供し忘れた場合の評価として正しいものはどれか？',choices:['特に問題ない','接客品質の低下・提供漏れとして評価される','後から出せば問題ない','女性担当者が対応する'],answer:'接客品質の低下・提供漏れとして評価される',keys:[],pt:1,note:'ドリンクとセットで完結させることが必須'},
+      {sec:'クラッシュ・転卓・トイレ案内',type:'4択',q:'クラッシュ時の正しい対応順序はどれか？',choices:['清掃→インカム→報告','インカム→かわしぼ持参（10秒以内）→清掃→センター報告','謝罪→清掃→インカム','センター報告→清掃→インカム'],answer:'インカム→かわしぼ持参（10秒以内）→清掃→センター報告',keys:[],pt:1,note:'順序が重要。ゲストファーストで動く'},
+      {sec:'クラッシュ・転卓・トイレ案内',type:'○×',q:'転卓が決まったら、まず自分の判断でドリンクを転卓先に持っていく。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'フロントに確認してから転卓。誰が持っていくかセンターと相談する'},
+      {sec:'クラッシュ・転卓・トイレ案内',type:'4択',q:'女性ゲストがお手洗いに向かう際の正しい対応はどれか？',choices:['そのまま案内する','インカムで情報を飛ばし女性会員用トイレに案内しないようにする','センターを呼ぶ','フロントに任せる'],answer:'インカムで情報を飛ばし女性会員用トイレに案内しないようにする',keys:[],pt:1,note:'女性ゲストと女性会員用トイレは分ける'},
+      {sec:'会計4種・ドリチェ・ラストオーダー',type:'穴埋',q:'会計の種類を4つすべて答えよ。',choices:[],answer:'90分声かけ・今チェ・時間指定チェック・キリチェ',keys:['90分','今チェ','時間指定','キリチェ'],pt:2,note:'4種類の名称と違いを覚える'},
+      {sec:'会計4種・ドリチェ・ラストオーダー',type:'穴埋',q:'ドリチェは会計の何分前を目安に行うか？',choices:[],answer:'10分前',keys:['10'],pt:1,note:'早めの確認が伝票精度を上げる'},
+      {sec:'会計4種・ドリチェ・ラストオーダー',type:'4択',q:'「今チェ」対応の共通動作として正しいものはどれか？',choices:['声かけ→確認→提出','即反応→インカム→伝票確認→修正→提出','インカム→清算→提出','確認→報告→清算'],answer:'即反応→インカム→伝票確認→修正→提出',keys:[],pt:1,note:'5ステップを崩さず実施する'},
+      {sec:'会計4種・ドリチェ・ラストオーダー',type:'4択',q:'キリチェの説明として正しいものはどれか？',choices:['お客様からのチェック申告','女性紹介など区切りのよいタイミングでのチェック','指定時間でのチェック','90分到達でのチェック'],answer:'女性紹介など区切りのよいタイミングでのチェック',keys:[],pt:1,note:'イントロ・センターと連携して移行する'},
+      {sec:'インカム・トレンチ・配置役割',type:'4択',q:'インカムの発信優先順位として正しいものはどれか？',choices:['ウェイターが最優先','ポーター・フロントが最優先','センターが最優先','誰でもよい'],answer:'ポーター・フロントが最優先',keys:[],pt:1,note:'入客情報を流す役割のため最優先'},
+      {sec:'インカム・トレンチ・配置役割',type:'4択',q:'トレンチの正しい持ち方はどれか？',choices:['手のひら全体で支える','指で支える','両手で持つ','肘で支える'],answer:'指で支える',keys:[],pt:1,note:'物を乗せすぎないことも重要'},
+      {sec:'インカム・トレンチ・配置役割',type:'穴埋',q:'センターの主な役割を答えよ。',choices:[],answer:'ホール全体の統括・連携・指示。困ったときの報告先・司令塔',keys:['統括','連携','指示','司令塔'],pt:2,note:'配置役割一覧から正確に覚える'},
+      {sec:'インカム・トレンチ・配置役割',type:'4択',q:'バーの役割として正しいものはどれか？',choices:['ホール全体の指揮','ドリンク作成・オーダーの受け先','予約受付・入客管理','女性紹介'],answer:'ドリンク作成・オーダーの受け先',keys:[],pt:1,note:'BAR上がりを放置するとウェイターの責任になる'},
+      {sec:'インカム・トレンチ・配置役割',type:'穴埋',q:'イントロの主な役割を答えよ。',choices:[],answer:'女性紹介。キリチェや女性入替の判断に関与する',keys:['女性紹介','キリチェ','女性入替'],pt:2,note:'女性変更を見逃さないことが重要'},
+    ]},
+  lounge:{id:'lounge',label:'PHASE 2',title:'ラウンジウェイターテスト',randomPick:15,
+    questions:[
+      {sec:'伝票・BTL対応',type:'4択',q:'ボトルオーダーを受けた際、インカムでセンターに伝えるべき3点はどれか？',choices:['名前・人数・時間','卓番・銘柄・何本目か','値段・銘柄・本数','センター名・卓番・銘柄'],answer:'卓番・銘柄・何本目か',keys:[],pt:1,note:'例：A1卓、ドンペリ白、一本目'},
+      {sec:'伝票・BTL対応',type:'○×',q:'ボトルメニューで銘柄を確認する際、値段も一緒に復唱してお客様に確認する。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'値段での確認はお客様に失礼なためNG'},
+      {sec:'伝票・BTL対応',type:'穴埋',q:'シャンパン・白ワインのボトルが入った際、シャンパングラスはゲスト人数分＋何脚用意するか？',choices:[],answer:'2脚',keys:['2'],pt:1,note:'予備2脚が基本'},
+      {sec:'伝票・BTL対応',type:'4択',q:'キープがないお客様からボトルオーダーがあった場合の正しい対応はどれか？',choices:['すぐキープ登録する','飲み切り対応で提供する','センターにキープか飲み切りか確認する','お断りする'],answer:'センターにキープか飲み切りか確認する',keys:[],pt:1,note:'必ずセンターに確認'},
+      {sec:'伝票・BTL対応',type:'穴埋',q:'ウイスキーや焼酎など割り物が必要なドリンクの伝票の書き方を答えよ。（山崎12年の水割りの場合）',choices:[],answer:'山崎12年/水割り',keys:['スラッシュ','/','割り方'],pt:2,note:'お酒の名前/割り方 の形式で書く'},
+      {sec:'ファースト・ドリンク提供',type:'4択',q:'ファーストドリンクの提供が4分以上かかりそうな場合の対応はどれか？',choices:['そのまま待つ','口頭で謝罪のみ','ゲスト人数分のサービスシャンパンを提供する','別のドリンクを勧める'],answer:'ゲスト人数分のサービスシャンパンを提供する',keys:[],pt:1,note:'「ただいまドリンクの提供が遅れており…」の文言で'},
+      {sec:'ファースト・ドリンク提供',type:'○×',q:'ドリンク提供時に「ビールのお客様はどなたですか？」と確認しながら出してよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'居酒屋的対応はNG。伝票の席番で判断する'},
+      {sec:'ファースト・ドリンク提供',type:'4択',q:'女性会員のドリンクオーダーを取る際の正しい声かけはどれか？',choices:['直接女性に聞く','「よろしければ女性のお飲み物もご用意させていただいてよろしいでしょうか？」とゲストに伺う','センターに頼む','ゲストの許可なく女性に聞く'],answer:'「よろしければ女性のお飲み物もご用意させていただいてよろしいでしょうか？」とゲストに伺う',keys:[],pt:1,note:'必ずゲストに許可を取る'},
+      {sec:'ファースト・ドリンク提供',type:'穴埋',q:'オーダープッシュのタイミングはグラスの残量が何割になったときが最適か？',choices:[],answer:'2〜3割',keys:['2','3'],pt:1,note:'言われる前に先手を打つ'},
+      {sec:'ファースト・ドリンク提供',type:'4択',q:'ドリンク提供の優先順位として正しいものはどれか？',choices:['女性会員→ゲスト→エスコート→マネージャー','ゲスト→エスコート→女性会員→マネージャー','ゲスト→女性会員→エスコート→マネージャー','エスコート→ゲスト→女性会員→マネージャー'],answer:'ゲスト→女性会員→エスコート→マネージャー',keys:[],pt:1,note:'優先順位は必須知識'},
+      {sec:'卓管理・4点確認',type:'穴埋',q:'卓に入るたびに確認すべき4点を答えよ。',choices:[],answer:'グラス・灰皿・女性・未提供',keys:['グラス','灰皿','女性','未提供'],pt:2,note:'改訂版研修の新項目'},
+      {sec:'卓管理・4点確認',type:'○×',q:'BAR上がりのドリンクはすぐに回収・提供まで完了させる必要がある。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'放置はNG。回収→提供を1セットで'},
+      {sec:'卓管理・4点確認',type:'4択',q:'おしぼりを新たに提供するタイミングをすべて含む選択肢はどれか？',choices:['お手洗い後のみ','フード提供時・お手洗い後・テキーラが出た際','テキーラが出た際のみ','ドリンクのお代わりのたびに'],answer:'フード提供時・お手洗い後・テキーラが出た際',keys:[],pt:1,note:'3つのタイミングを覚える'},
+      {sec:'卓管理・4点確認',type:'○×',q:'女性会員が入れ替わった際や新たに着席した際は、必ず認識してドリンク確認につなげる。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'女性変更の把握は重要業務'},
+      {sec:'クラッシュ・転卓',type:'4択',q:'クラッシュが発生した際の正しい対応順序はどれか？',choices:['清掃→インカム→センター報告','お客様への謝罪→清掃→インカム','即インカム→かわしぼ持参→清掃→センター報告','センター報告→清掃→インカム'],answer:'即インカム→かわしぼ持参→清掃→センター報告',keys:[],pt:1,note:'順序が大切'},
+      {sec:'クラッシュ・転卓',type:'穴埋',q:'クラッシュ後、おしぼりを持って卓に向かうまでの目安は何秒以内か？',choices:[],answer:'10秒以内',keys:['10'],pt:1,note:'ゲストファーストの基準'},
+      {sec:'クラッシュ・転卓',type:'穴埋',q:'転卓が決まり転卓元から引き継ぐべき情報を3つ答えよ。',choices:[],answer:'誰が何を飲んでいるか・キープボトルの有無・お客様情報（酒の濃さ・注意点等）',keys:['飲んでいる','キープ','情報'],pt:2,note:'引き継ぎ漏れは提供ミスにつながる'},
+      {sec:'クラッシュ・転卓',type:'4択',q:'女性ゲストがお手洗いに向かう際の正しい対応はどれか？',choices:['そのまま案内する','インカムで情報を飛ばし女性会員用トイレに案内しないようにする','センターを呼ぶ','フロントに任せる'],answer:'インカムで情報を飛ばし女性会員用トイレに案内しないようにする',keys:[],pt:1,note:'女性ゲストと女性会員用トイレは分ける'},
+      {sec:'会計・ドリチェ',type:'4択',q:'会計の種類4種として正しい選択肢はどれか？',choices:['今チェ・キリチェ・90分声かけ・時間指定チェック','今チェ・ドリチェ・90分声かけ・フリーチェック','ラストオーダー・今チェ・キリチェ・時間指定','ドリチェ・今チェ・90分・フリーチェック'],answer:'今チェ・キリチェ・90分声かけ・時間指定チェック',keys:[],pt:1,note:'4種類の名称を覚える'},
+      {sec:'会計・ドリチェ',type:'穴埋',q:'ドリチェは会計の何分前を目安に行うか？',choices:[],answer:'10分前',keys:['10'],pt:1,note:'早めの確認が精度を上げる'},
+      {sec:'会計・ドリチェ',type:'○×',q:'ラストオーダーの時間は24時30分であり、伝票の客数欄に「L」と記入する。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'Lがラストの合図'},
+      {sec:'会計・ドリチェ',type:'4択',q:'お客様のチェック合図として正しくないものはどれか？',choices:['両手の人差し指を交差してXのポーズ','片手を軽く握り横に振る','手を縦に上下に振る','エスコートを通じてチェックを伝える'],answer:'手を縦に上下に振る',keys:[],pt:1,note:'縦振りはチェックの合図ではない'},
+      {sec:'会計・ドリチェ',type:'穴埋',q:'「今チェ」対応の共通動作を順番に答えよ。',choices:[],answer:'即反応→インカム→伝票確認→修正→提出',keys:['インカム','伝票','修正','提出'],pt:2,note:'5ステップを正確に'},
+      {sec:'禁止事項・ラウンジルール',type:'4択',q:'ラウンジ席での禁止事項をすべて含む選択肢はどれか？',choices:['シガーのみ','シガー・ブランケット貸出・モバイルバッテリー貸出・大声の飲みゲーム','ブランケット貸出のみ','大声の飲みゲームのみ'],answer:'シガー・ブランケット貸出・モバイルバッテリー貸出・大声の飲みゲーム',keys:[],pt:1,note:'個室と異なる制限を覚える'},
+      {sec:'禁止事項・ラウンジルール',type:'○×',q:'お客様から飲酒を勧められた場合、少量であれば応じてよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'営業中の飲酒は一切禁止'},
+      {sec:'連携・ゲストアウト',type:'4択',q:'ゲストアウト後の正しい順序はどれか？',choices:['バッシング→インカム報告→忘れ物チェック','インカムでゲストアウトを伝える→忘れ物チェック→バッシング','忘れ物チェック→インカム→バッシング','バッシング→忘れ物チェック→インカム'],answer:'インカムでゲストアウトを伝える→忘れ物チェック→バッシング',keys:[],pt:1,note:'インカム報告が最初'},
+      {sec:'連携・ゲストアウト',type:'○×',q:'ドリンクバック（DB）はテキーラ・シャンパン・ワインが対象で、グラスワイン・グラスシャンパンはDBに含まない。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'グラスで提供されたものはDB対象外'},
+      {sec:'連携・ゲストアウト',type:'穴埋',q:'ゲストの眼鏡を卓に置かれた際は眼鏡ケースを提供し「中に＿＿＿も入っております」と伝える。',choices:[],answer:'眼鏡拭き',keys:['眼鏡拭き','メガネ拭き'],pt:1,note:'細やかな配慮を覚える'},
+      {sec:'連携・ゲストアウト',type:'穴埋',q:'「わかりません」で終わらせてはいけない場面での正しい対応フレーズを1つ答えよ。',choices:[],answer:'担当者に確認致します・ただいま確認してまいります',keys:['確認','ただいま','担当者'],pt:2,note:'定型フレーズを正確に'},
+      {sec:'連携・ゲストアウト',type:'4択',q:'灰皿交換の正しい手順はどれか？',choices:['古い灰皿を下げてから新しい灰皿を置く','新しい灰皿を古い灰皿の上に重ねて2枚まとめて下げる','古い灰皿を下げた後センターに渡す','吸い殻が3本になったら交換する'],answer:'新しい灰皿を古い灰皿の上に重ねて2枚まとめて下げる',keys:[],pt:1,note:'灰が飛ぶのを防ぐため上に重ねてから下げる'},
+    ]},
+  menu:{id:'menu',label:'PHASE 2',title:'グランドメニューテスト',
+    questions:[
+      {type:'4択',cat:'ビール',q:'当店メニューのビール5銘柄として正しいものはどれか？',choices:['キリン・アサヒ・ギネス・コロナ・オールフリー','プレミアムモルツ香エール・アサヒ・ギネス・ヒューガルデンホワイト・オールフリー','エビス・アサヒ・ギネス・ヒューガルデン・オールフリー','プレミアムモルツ・アサヒ・ハイネケン・ギネス・オールフリー'],answer:'プレミアムモルツ香エール・アサヒ・ギネス・ヒューガルデンホワイト・オールフリー',note:'5銘柄をすべて覚える'},
+      {type:'穴埋',cat:'ジャパニーズウイスキー',q:'ジャパニーズウイスキーの銘柄を5つすべて答えよ。',answer:'白州・山崎・知多・竹鶴・響BC',keys:['白州','山崎','知多','竹鶴','響'],note:'5銘柄をすべて覚える'},
+      {type:'穴埋',cat:'スコッチウイスキー',q:'スコッチウイスキーの銘柄を5つすべて答えよ。',answer:'グレンモーレンジ12年・グレンフィディック・ラフロイグ・バランタイン17年・シーバスリーガル',keys:['グレンモーレンジ','グレンフィディック','ラフロイグ','バランタイン','シーバス'],note:'5銘柄をすべて覚える'},
+      {type:'穴埋',cat:'アメリカンウイスキー',q:'アメリカンウイスキーの銘柄を5つすべて答えよ。',answer:'メーカーズマーク・ワイルドターキー12年・ブラントン・フォアローゼスプラチナ・ハーパー12年',keys:['メーカーズ','ワイルドターキー','ブラントン','フォアローゼス','ハーパー'],note:'5銘柄をすべて覚える'},
+      {type:'4択',cat:'カナディアン・アイリッシュウイスキー',q:'カナディアンウイスキーはどれか？',choices:['ジェムソン','カナディアンクラブ','ブラックブッシュ','バランタイン17年'],answer:'カナディアンクラブ',note:'カナダで作られるウイスキー'},
+      {type:'4択',cat:'カナディアン・アイリッシュウイスキー',q:'アイリッシュウイスキー2銘柄はどれか？',choices:['ジェムソン・ブラントン','ジェムソン・ブラックブッシュ','ラフロイグ・ブラックブッシュ','ジェムソン・グレンフィディック'],answer:'ジェムソン・ブラックブッシュ',note:'アイルランドで作られるウイスキー'},
+      {type:'穴埋',cat:'ブランデー・カルヴァドス',q:'メニュー内のブランデー3銘柄をすべて答えよ。',answer:'カミュ・マーテルコルドンブルー・ヘネシーXO',keys:['カミュ','マーテル','ヘネシー'],note:'3銘柄をすべて覚える'},
+      {type:'4択',cat:'ブランデー・カルヴァドス',q:'メニュー内のカルヴァドスはどれか？',choices:['カミュ','ヘネシーXO','ブラーグランソラージュ','マーテルコルドンブルー'],answer:'ブラーグランソラージュ',note:'リンゴを原料とするフランスのブランデー'},
+      {type:'穴埋',cat:'芋焼酎',q:'メニュー内の芋焼酎6銘柄をすべて答えよ。',answer:'富乃宝山・赤兎馬・伊佐美・村尾・魔王・森伊蔵',keys:['富乃宝山','赤兎馬','伊佐美','村尾','魔王','森伊蔵'],note:'6銘柄をすべて覚える'},
+      {type:'穴埋',cat:'麦焼酎・その他焼酎',q:'メニュー内の麦焼酎4銘柄をすべて答えよ。',answer:'吉四六・中々・兼八・百年の孤独',keys:['吉四六','中々','兼八','百年'],note:'4銘柄をすべて覚える'},
+      {type:'4択',cat:'麦焼酎・その他焼酎',q:'米焼酎・しそ焼酎・梅酒の組み合わせとして正しいものはどれか？',choices:['鳥飼・鍛高譚・はちみつ梅酒','鳥飼・百年の孤独・はちみつ梅酒','富乃宝山・鍛高譚・はちみつ梅酒','鳥飼・鍛高譚・チョーヤ梅酒'],answer:'鳥飼・鍛高譚・はちみつ梅酒',note:'米=鳥飼、しそ=鍛高譚、梅酒=はちみつ梅酒'},
+      {type:'4択',cat:'ミネラルウォーター',q:'メニュー内のミネラルウォーター2種はどれか？',choices:['エビアン・ペリエ','奥会津金山天然水・ペリエ','奥会津金山天然水・エビアン','ボルヴィック・ペリエ'],answer:'奥会津金山天然水・ペリエ',note:'チェイサー用として奥会津金山天然水を使用'},
+      {type:'穴埋',cat:'ジン・ウォッカ',q:'メニュー内のジン4銘柄をすべて答えよ。',answer:'ビーフィーター・ゴードン・タンカレーNO.10・ボンベイサファイア',keys:['ビーフィーター','ゴードン','タンカレー','ボンベイ'],note:'4銘柄をすべて覚える'},
+      {type:'穴埋',cat:'ジン・ウォッカ',q:'メニュー内のウォッカ4銘柄をすべて答えよ。',answer:'スミノフ・ズブロッカ・ベルベデール・グレイグース',keys:['スミノフ','ズブロッカ','ベルベデール','グレイグース'],note:'4銘柄をすべて覚える'},
+      {type:'穴埋',cat:'ラム・テキーラ',q:'ラム3銘柄とテキーラ2銘柄をすべて答えよ。',answer:'ラム：バカルディホワイト・マイヤーズ・ロンサカパ　テキーラ：クエルボ1800アネホ・パトロンアネホ',keys:['バカルディ','マイヤーズ','ロンサカパ','クエルボ','パトロン'],note:'ラム3・テキーラ2の合計5銘柄'},
+      {type:'穴埋',cat:'女性カクテル',q:'JJのレシピを答えよ。',answer:'茉莉花＋ジャスミン茶',keys:['茉莉花','ジャスミン'],note:'女性カクテルのレシピを正確に覚える'},
+      {type:'穴埋',cat:'女性カクテル',q:'シャーリーテンプルのレシピを答えよ。',answer:'ジンジャエール＋グレナデンシロップ＋Cレモン',keys:['ジンジャ','グレナデン','レモン'],note:'女性カクテルのレシピを正確に覚える'},
+      {type:'穴埋',cat:'女性カクテル',q:'オペレーターのレシピを答えよ。',answer:'ジンジャエール＋G白',keys:['ジンジャ','G白','白ワイン'],note:'G白＝グラスワイン白'},
+      {type:'穴埋',cat:'女性カクテル',q:'キティのレシピを答えよ。',answer:'ジンジャエール＋G赤＋Cレモン',keys:['ジンジャ','G赤','レモン'],note:'G赤＝グラスワイン赤'},
+      {type:'穴埋',cat:'女性カクテル',q:'ベリーニのレシピを答えよ。',answer:'ネクター＋Gシャン',keys:['ネクター','シャン','シャンパン'],note:'Gシャン＝グラスシャンパン'},
+      {type:'穴埋',cat:'女性カクテル',q:'チャイナローズのレシピを答えよ。',answer:'無糖紅茶＋ハイビスカスシロップ',keys:['紅茶','ハイビスカス'],note:'女性カクテルのレシピを正確に覚える'},
+      {type:'穴埋',cat:'女性カクテル',q:'パピーのレシピを答えよ。',answer:'ローズウォーター＋コラーゲン＋GFJ',keys:['ローズ','コラーゲン','GFJ','グレープ'],note:'GFJ＝グレープフルーツジュース'},
+      {type:'穴埋',cat:'女性カクテル',q:'クラシックのレシピを答えよ。',answer:'フランボワーズ＋レモンJ＋ソーダ',keys:['フランボワーズ','レモン','ソーダ'],note:'女性カクテルのレシピを正確に覚える'},
+    ]},
+  house:{id:'house',label:'PHASE 2',title:'ハウスボトルテスト',
+    questions:[
+      {type:'4択',cat:'シャンパン・ビール',q:'グラスシャンパン（ハウス）の正式名称はどれか？',choices:['ドンペリ白','モエ白','ドゥッツ ブリュットクラシック','ヴーヴイエロー'],answer:'ドゥッツ ブリュットクラシック',note:'当店のハウスシャンパン'},
+      {type:'4択',cat:'シャンパン・ビール',q:'生ビールのハウスボトルはどれか？',choices:['アサヒスーパードライ','プレミアムモルツ 香るエール','キリン一番搾り','エビス'],answer:'プレミアムモルツ 香るエール',note:'正式名まで覚える'},
+      {type:'穴埋',cat:'ウイスキー',q:'ハウスウイスキー（ハイボール使用）の銘柄と年数を答えよ。',answer:'グレンモーレンジ12年',keys:['グレンモーレンジ','12'],note:'当店のハイボールで使用するスコッチウイスキー'},
+      {type:'4択',cat:'ウイスキー',q:'ハウスバーボンウイスキーはどれか？',choices:['ジャックダニエル','ワイルドターキー','メーカーズマーク','ブラントン'],answer:'メーカーズマーク',note:'アメリカで作られるバーボン'},
+      {type:'4択',cat:'ウイスキー',q:'ハウスアイリッシュウイスキーはどれか？',choices:['グレンフィディック','ジェムソン','ブラックブッシュ','ラフロイグ'],answer:'ジェムソン',note:'アイルランドで作られるウイスキー'},
+      {type:'4択',cat:'ウイスキー',q:'ハウスカナディアンウイスキーはどれか？',choices:['竹鶴','カナディアンクラブ','シーバスリーガル','バランタイン17年'],answer:'カナディアンクラブ',note:'カナダで作られるウイスキー'},
+      {type:'4択',cat:'ブランデー・焼酎',q:'ハウスブランデーはどれか？',choices:['ヘネシーXO','マーテルコルドンブルー','カミュ','レミーマルタン'],answer:'カミュ',note:'果実酒を蒸留して作られるブランデー'},
+      {type:'4択',cat:'ブランデー・焼酎',q:'ハウス芋・麦・米・しそ焼酎の組み合わせとして正しいものはどれか？',choices:['魔王・吉四六・鳥飼・鍛高譚','赤兎馬・吉四六・鳥飼・鍛高譚','赤兎馬・百年の孤独・鳥飼・鍛高譚','富乃宝山・吉四六・鳥飼・鍛高譚'],answer:'赤兎馬・吉四六・鳥飼・鍛高譚',note:'芋=赤兎馬、麦=吉四六、米=鳥飼、しそ=鍛高譚'},
+      {type:'4択',cat:'スピリッツ・梅酒',q:'ハウスジン・ウォッカ・ラム・梅酒の組み合わせとして正しいものはどれか？',choices:['ビーフィーター・スミノフ・バカルディホワイト・はちみつ梅酒','ゴードン・スミノフ・マイヤーズ・はちみつ梅酒','ビーフィーター・グレイグース・バカルディホワイト・はちみつ梅酒','タンカレー・スミノフ・バカルディホワイト・チョーヤ梅酒'],answer:'ビーフィーター・スミノフ・バカルディホワイト・はちみつ梅酒',note:'各カテゴリのハウスボトルを覚える'},
+      {type:'穴埋',cat:'テキーラ',q:'ショット用テキーラとカクテル用テキーラをそれぞれ答えよ。',answer:'ショット用：クエルボ1800アネホ　カクテル用：サウザシルバー',keys:['クエルボ','サウザ'],note:'2種類の使い分けを覚える'},
+    ]},
+  btl:{id:'btl',label:'PHASE 2',title:'BTL値段テスト',
+    questions:[
+      {type:'穴埋',cat:'シャンパン',q:'クリスタルの値段を答えよ。',answer:'160,000円',keys:['160'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'クリュッグの値段を答えよ。',answer:'130,000円',keys:['130'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'クリュッグロゼの値段を答えよ。',answer:'170,000円',keys:['170'],note:'ロゼはレギュラーより高い'},
+      {type:'穴埋',cat:'シャンパン',q:'ドンペリ白の値段を答えよ。',answer:'110,000円',keys:['110'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ドンペリロゼの値段を答えよ。',answer:'180,000円',keys:['180'],note:'白より高い'},
+      {type:'穴埋',cat:'シャンパン',q:'ドンペリP2の値段を答えよ。',answer:'240,000円',keys:['240'],note:'プレステージ価格帯'},
+      {type:'穴埋',cat:'シャンパン',q:'ベルエポックの値段を答えよ。',answer:'110,000円',keys:['110'],note:'ドンペリ白と同価格'},
+      {type:'穴埋',cat:'シャンパン',q:'ベルエポックロゼの値段を答えよ。',answer:'170,000円',keys:['170'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ヴーヴイエローの値段を答えよ。',answer:'30,000円',keys:['30'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ヴーヴホワイトの値段を答えよ。',answer:'35,000円',keys:['35'],note:'イエローより5,000円高い'},
+      {type:'穴埋',cat:'シャンパン',q:'ローランペリエウルトラブリュットの値段を答えよ。',answer:'50,000円',keys:['50'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'サロンの値段を答えよ。',answer:'460,000円',keys:['460'],note:'最高額クラスのシャンパン'},
+      {type:'穴埋',cat:'シャンパン',q:'ソウメイ（白）の値段を答えよ。',answer:'100,000円',keys:['100'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ソウメイロゼの値段を答えよ。',answer:'170,000円',keys:['170'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'モエ白・モエロゼの値段をそれぞれ答えよ。',answer:'モエ白：30,000円　モエロゼ：35,000円',keys:['30','35'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ドゥッツ・ドゥッツマグナムの値段をそれぞれ答えよ。',answer:'ドゥッツ：38,000円　マグナム：82,000円',keys:['38','82'],note:'ハウスシャンパンの価格を正確に'},
+      {type:'穴埋',cat:'シャンパン',q:'アルマンドゴールド・ロゼ・ドゥミセックの値段をそれぞれ答えよ。',answer:'ゴールド：180,000円　ロゼ：250,000円　ドゥミセック：280,000円',keys:['180','250','280'],note:'3種類の価格差を覚える'},
+      {type:'穴埋',cat:'シャンパン',q:'アンリジローフェドシェーヌの値段を答えよ。',answer:'120,000円',keys:['120'],note:''},
+      {type:'穴埋',cat:'シャンパン',q:'ジャクソン748の値段を答えよ。',answer:'52,000円',keys:['52'],note:''},
+      {type:'穴埋',cat:'テキーラ',q:'クエルボ1800・オロアネホ・クラセアスール・ドンフリオの値段をそれぞれ答えよ。',answer:'クエルボ1800：80,000円　オロアネホ：80,000円　クラセアスール：100,000円　ドンフリオ：90,000円',keys:['80','100','90'],note:'4銘柄の価格を覚える'},
+      {type:'穴埋',cat:'ウイスキー',q:'知多・山崎NV・山崎12年の値段をそれぞれ答えよ。',answer:'知多：30,000円　山崎NV：60,000円　山崎12年：90,000円',keys:['30','60','90'],note:'年数によって価格が上がる'},
+      {type:'穴埋',cat:'ウイスキー',q:'白州NV・マッカラン12年・マッカラン18年・ロイヤルハウスホールドの値段をそれぞれ答えよ。',answer:'白州NV：60,000円　マッカラン12年：75,000円　マッカラン18年：150,000円　ロイヤルHH：110,000円',keys:['60','75','150','110'],note:''},
+      {type:'穴埋',cat:'焼酎・ワイン',q:'吉四六（麦）・赤兎馬（芋）・魔王（芋）の値段をそれぞれ答えよ。',answer:'吉四六：20,000円　赤兎馬：20,000円　魔王：60,000円',keys:['20','60'],note:'魔王は高額な芋焼酎'},
+      {type:'穴埋',cat:'焼酎・ワイン',q:'G赤G白ボトル・オーバーチュア・オーパスワン2019の値段をそれぞれ答えよ。',answer:'G赤G白：30,000円　オーバーチュア：120,000円　オーパスワン2019：230,000円',keys:['30','120','230'],note:''},
+      {type:'4択',cat:'価格帯',q:'最も高額なシャンパンはどれか？',choices:['クリスタル（160,000円）','ドンペリP2（240,000円）','サロン（460,000円）','アルマンドドゥミセック（280,000円）'],answer:'サロン（460,000円）',note:'価格帯の全体感を把握する'},
+    ]},
+  hall:{id:'hall',label:'PHASE 2',title:'ホールスタッフ実務対応テスト',randomPick:15,
+    questions:[
+      {type:'記述',cat:'サービス料',q:'BEKKANでは毎月約いくらのサービス料を頂戴していますか？また、それに見合うサービスのために最も大切にしている最終目標は何ですか？',answer:'サービス料の金額と最終目標の2点',keys:['サービス','目標','万'],note:'金額と最終目標の両方を答える'},
+      {type:'4択',cat:'基本サービス',q:'お客様のグラスを下げる際の正しい声掛けはどれか？',choices:['「下げます」','「こちら下げますね」','「こちらお下げしてもよろしいでしょうか？」','「お下げします」'],answer:'「こちらお下げしてもよろしいでしょうか？」',note:'丁寧な断りを入れることが重要'},
+      {type:'4択',cat:'基本サービス',q:'ファーストドリンクの提供順番で正しいものはどれか？',choices:['エスコート→お客様→女性会員様','女性会員様→お客様→エスコート','お客様→女性会員様→エスコート','お客様→エスコート→女性会員様'],answer:'お客様→女性会員様→エスコート',note:'ゲスト→女性会員→エスコート→マネージャーが優先順位'},
+      {type:'記述',cat:'ボトル対応',q:'シャンパンのボトルオーダーを受けた際、インカムでセンターに伝えるべき内容を具体例で記述せよ。',answer:'卓番・銘柄・何本目か',keys:['卓番','卓','銘柄','本目','お願い'],note:'例）A1、A1卓様でドンペリ白一本目頂きました。物、伝票お願いします。'},
+      {type:'4択',cat:'基本サービス',q:'お客様から女性会員様の情報について聞かれた場合の対応はどれか？',choices:['知っている範囲で教える','必ずマネージャーを呼ぶ','センターに確認する','「わかりません」と答える'],answer:'センターに確認する',note:'個人情報はセンターに確認してから対応'},
+      {type:'記述',cat:'女性対応',q:'女性会員様が着席した際、どのタイミングでどのように声をかけてドリンクをオーダーするか答えよ。',answer:'ゲストに許可を取ってから女性にオーダーを伺う',keys:['ゲスト','よろしければ','お飲み物','許可'],note:'「よろしければ女性のお飲み物もご用意させていただいてよろしいでしょうか？」とゲストへ伺う'},
+      {type:'記述',cat:'クラッシュ対応',q:'担当卓でグラスを落として割った。まず最初にすべき対応を2つ答えよ。',answer:'インカムを飛ばす・かわしぼを持って向かう',keys:['インカム','おしぼり','かわしぼ','10秒'],note:'①即座にインカムを飛ばす　②かわしぼを持って10秒以内に卓へ向かいゲストの洋服を確認'},
+      {type:'4択',cat:'衛生管理',q:'営業中のトイレチェックのタイミングで正しいものはどれか？',choices:['30分に1回','1時間に1回','お客様が1〜2人使用したら','忙しくない時だけ'],answer:'お客様が1〜2人使用したら',note:'使用状況に応じてチェックする'},
+      {type:'4択',cat:'伝票管理',q:'伝票に関する記述で間違っているものはどれか？',choices:['インカムでオーダーを通すのは基本的に禁止','グラス・ボトル・フードは必ず伝票を分ける','女性会員からの注文は品名を○で囲む','ドリンクバック伝票は書かなくてもよい'],answer:'ドリンクバック伝票は書かなくてもよい',note:'ドリンクバック（DB）の記録は必須'},
+      {type:'記述',cat:'個室対応',q:'個室にお客様を案内する際、入室時に必ず行うべきことを2つ記述せよ。',answer:'挨拶・荷物預かり',keys:['挨拶','いらっしゃいませ','荷物','上着','鞄'],note:'①「こんばんは、いらっしゃいませ」と挨拶　②上着・荷物を預かりオッドマン等に置く'},
+      {type:'記述',cat:'トラブル対応',q:'お客様が女性会員様に過度な接触をしているのを発見した。どう対応するか答えよ。',answer:'即座にセンターへ報告する',keys:['センター','報告','即座','すぐ'],note:'即座にセンターへ報告。対応はセンター・マネージャーが行う'},
+      {type:'4択',cat:'ラウンジルール',q:'ラウンジ席で禁止されているものをすべて含む選択肢はどれか？',choices:['シガーのみ','ブランケット貸出のみ','シガー・ブランケット貸出・モバイルバッテリー貸出・大声の飲みゲーム','大声の飲みゲームのみ'],answer:'シガー・ブランケット貸出・モバイルバッテリー貸出・大声の飲みゲーム',note:'個室はOKだがラウンジは貸出不可'},
+      {type:'4択',cat:'基本サービス',q:'ドリンクのおかわりを聞くタイミングの目安はどれか？',choices:['グラスが空になってから','指1本分の残量時','指2本分の残量時（2〜3割）','半分飲まれた時'],answer:'指2本分の残量時（2〜3割）',note:'言われる前に先手を打つ'},
+      {type:'4択',cat:'配置理解',q:'ポーターに関する記述で正しいものはどれか？',choices:['エントランスに立ち、店の看板として振る舞う','大声を出すお客様には厳しく注意する','雨の日でも傘の対応は不要','予約の有無に関わらず全てのお客様を入店させる'],answer:'エントランスに立ち、店の看板として振る舞う',note:'ポーターは来店受付・フロントへの通知が主業務'},
+      {type:'4択',cat:'身だしなみ',q:'勤務中に禁止されている身だしなみをすべて含む選択肢はどれか？',choices:['指輪・ピアスのみ','長い爪のみ','指輪・ピアス・長い爪・明るすぎる髪色','香水のみ'],answer:'指輪・ピアス・長い爪・明るすぎる髪色',note:'清潔感を保つための身だしなみ基準'},
+      {type:'4択',cat:'禁止事項',q:'ホールスタッフの禁止事項をすべて含む選択肢はどれか？',choices:['柱や壁に寄りかかる・髪や顔を触る・店内で走る','お酒を薄めて提供・退店前の片付け','寄りかかる・薄めて提供・退店前片付け・髪顔を触る・走る（全て）','走ることのみ'],answer:'寄りかかる・薄めて提供・退店前片付け・髪顔を触る・走る（全て）',note:'A〜E全て禁止事項'},
+      {type:'記述',cat:'基本サービス',q:'「わかりません」で終わらせてはいけない場面での正しい対応フレーズを答えよ。',answer:'担当者に確認致します・ただいま確認してまいります',keys:['確認','ただいま','担当者'],note:'「担当者に確認致します」「ただいま確認してまいります」など適切な言葉で対応'},
+      {type:'4択',cat:'女性対応',q:'フリーの席での女性会員様のドリンクと3杯目の対応として正しいものはどれか？',choices:['1杯・センターに確認','2杯・マネージャーに確認','2杯・センター・マネージャーに確認','3杯・確認不要'],answer:'2杯・センター・マネージャーに確認',note:'2杯が目標。3杯目は必ず確認'},
+      {type:'記述',cat:'フード対応',q:'フードオーダーを取った場合、担当者が用意すべきものを3つと、テーブルに置く際の注意点を答えよ。',answer:'取り皿・カトラリー・備品　注意点：上座のお客様に料理の向きを合わせる',keys:['取り皿','カトラリー','上座','向き'],note:'①取り皿（人数+2枚）②カトラリーセット③フルーツは姫フォーク・トング　注意点：上座に料理の向きを合わせる'},
+      {type:'記述',cat:'基本サービス',q:'お客様からのコールへの対応を、居酒屋との違いを意識して記述せよ。',answer:'大きな声で反応しない・スマートに対応・コールを逃さない',keys:['スマート','大きな声','コール','素早く','気づく'],note:'大きな声で反応せずスマートに対応。常に小さなコールも見逃さない意識を持つ'},
+      {type:'記述',cat:'ゲストアウト',q:'お客様がお帰りになった後、忘れ物チェックで確認すべき場所を4つ答えよ。',answer:'テーブルの上・テーブルの下・ソファの隙間・ソファの横',keys:['テーブル','ソファ','隙間','上','下'],note:'テーブルの上・下、ソファの隙間・横を確認する'},
+      {type:'記述',cat:'ドリンク対応',q:'時間がかかるドリンクをオーダーされた場合の対応と注意点を答えよ。',answer:'お客様に時間がかかる旨を伝え了承を得る。サービスシャンパン対応も検討する',keys:['伝える','サービス','シャンパン','時間','了承'],note:'時間がかかる旨をお客様に伝え了承を得る。女性会員のドリンクがゲストのファーストより先にならないよう注意'},
+      {type:'記述',cat:'ボトル対応',q:'BEKKANはボトルキープ制か？またボトルオーダー時の正しい対応フローを答えよ。',answer:'グラスオーダーのお店。キープの有無を確認しセンターにキープか飲み切りか確認する',keys:['グラスオーダー','キープ','センター','確認'],note:'グラスオーダーのお店。キープの有無確認→センターにキープか飲み切りか確認'},
+      {type:'4択',cat:'配置理解',q:'センターの役割として正しくないものはどれか？',choices:['ホール業務の全てを指揮する','オーダーの出し忘れや提供スピードのチェック','クレーム時のホールの窓口','バーテンダーのドリンク作成'],answer:'バーテンダーのドリンク作成',note:'ドリンク作成はバーの役割'},
+      {type:'記述',cat:'配置理解',q:'ランナーは「人でいう心臓」と表現される。その理由と主な業務を3つ答えよ。',answer:'洗い物・運搬・買い出しなどの営業雑務を担いホール全体を支えるため',keys:['洗い','運搬','買い出し','支える','雑務','心臓'],note:'洗い物・運搬・買い出しなど営業雑務を担い、ホール全体を支える縁の下の力持ち'},
+      {type:'4択',cat:'配置理解',q:'ラウンジ席ウェイターの役割として正しくないものはどれか？',choices:['ラウンジに入店したお客様を最初に対応する','コールを上げさせず、オーダーミスがないように業務をこなす','お客様の表情を直で見られるので目配り・気配り・心配りが大切','個室のお客様専属のウェイターとして対応する'],answer:'個室のお客様専属のウェイターとして対応する',note:'個室は別の担当ウェイターが対応する'},
+      {type:'4択',cat:'基本サービス',q:'ファーストドリンク提供時に禁止されている行為はどれか？',choices:['上座のお客様から提供する','「ビールのお客様は？」など確認をとる','素早く提供する','出来上がり次第提供する'],answer:'「ビールのお客様は？」など確認をとる',note:'居酒屋的対応はNG。伝票の席番で判断する'},
+      {type:'記述',cat:'転卓対応',q:'転卓先を担当することになった。転卓元から引き継ぐべき情報を3つ以上答えよ。',answer:'誰が何を飲んでいるか・キープボトルの有無・お客様情報（酒の濃さ・注意点等）',keys:['飲んでいる','キープ','情報','注意','濃さ'],note:'①誰が何を飲んでいるか　②キープボトルの有無　③お客様・エスコートから伺った情報'},
+      {type:'記述',cat:'個室対応',q:'個室で用意できる備品を5つ以上答えよ。',answer:'ブランケット・モバイルバッテリー・スリッパ・トランプ・ジェンガ（サイコロも可）',keys:['ブランケット','モバイルバッテリー','スリッパ','トランプ','ジェンガ'],note:'ブランケット・モバイルバッテリー・スリッパ・トランプ・ジェンガ・サイコロ'},
+      {type:'4択',cat:'個室対応',q:'個室の照明について正しいものはどれか？',choices:['照明は調整できない','個室内の調光器なら調節可能','センターの許可が必要','マネージャーのみが調整できる'],answer:'個室内の調光器なら調節可能',note:'個室内は調光器で独自に調節できる'},
+      {type:'記述',cat:'トラブル対応',q:'お客様が飲料・飲食物を持ち込んでいることを発見した。適切な対応手順を答えよ。',answer:'内容物を確認しセンターをインカムで呼び報告。持ち込み料の計上を確認する',keys:['センター','報告','確認','内容','インカム'],note:'内容物（大きさ・種類・人数前）を確認→センターをインカムで呼び報告→持ち込み料の計上確認'},
+    ]},
+  kojitsu:{id:'kojitsu',label:'PHASE 3',title:'個室ウェイターテスト',randomPick:15,
+    questions:[
+      {sec:'入客前準備',type:'穴埋',q:'予約が決まったらセンターに確認すべき3点を答えよ。',choices:[],answer:'ゲストの人数・キープボトルの有無・特別対応が必要か',keys:['人数','キープ','特別'],pt:2,note:'事前確認の3点セット'},
+      {sec:'入客前準備',type:'4択',q:'入客30分前に個室の扉を閉める理由として正しいものはどれか？',choices:['お客様が入れないようにするため','いつお客様が来店されてもよいように準備するため','換気のため','スタッフが休むため'],answer:'いつお客様が来店されてもよいように準備するため',keys:[],pt:1,note:'準備完了の合図'},
+      {sec:'入客前準備',type:'○×',q:'個室アミューズに異物混入がないか必ず目視確認してから提供する。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'食品安全の基本'},
+      {sec:'入客前準備',type:'4択',q:'入客前の個室テーブルセット確認項目として正しくないものはどれか？',choices:['メニューの有無','キャンドルの有無','リザーブの有無','フードの有無'],answer:'フードの有無',keys:[],pt:1,note:'フードは事前にセットしない'},
+      {sec:'入客フロー・ファースト対応',type:'穴埋',q:'お客様来店時にインカムで発信する内容を答えよ。',choices:[],answer:'〇〇卓どうぞ',keys:['卓どうぞ','どうぞ'],pt:1,note:'担当卓のお客様がご来店されたとき'},
+      {sec:'入客フロー・ファースト対応',type:'4択',q:'ファーストドリンクをお伺いするタイミングとして正しいものはどれか？',choices:['入室直後すぐ','エスコートとの会話が終わった時か区切りの良いタイミング','着席してから5分後','センターの指示があってから'],answer:'エスコートとの会話が終わった時か区切りの良いタイミング',keys:[],pt:1,note:'会話の邪魔をしない'},
+      {sec:'入客フロー・ファースト対応',type:'○×',q:'荷物や鞄は床に置いてもよい。',choices:['○','×'],answer:'×',keys:[],pt:1,note:'荷物は絶対に床に置かない。オッドマン等に置く'},
+      {sec:'入客フロー・ファースト対応',type:'4択',q:'ファーストドリンクの提供が4分以上かかった場合の対応はどれか？',choices:['そのまま待つ','謝罪のみ','ゲスト人数分のサービスシャンパンを提供する','センターを呼ぶ'],answer:'ゲスト人数分のサービスシャンパンを提供する',keys:[],pt:1,note:'「ただいまドリンクの提供が遅れており…」の文言で'},
+      {sec:'入客フロー・ファースト対応',type:'穴埋',q:'女性会員のファーストドリンクを伺う際の文言：「よろしければ女性の＿＿もご用意させて頂いてよろしいでしょうか？」',choices:[],answer:'お飲み物',keys:['お飲み物','飲み物'],pt:1,note:'定型フレーズを正確に'},
+      {sec:'個室別対応・備品',type:'4択',q:'和室での接客で正しいものはどれか？',choices:['靴を履いたまま入室する','靴を脱いで入室する','スリッパで入室する','センターが対応する'],answer:'靴を脱いで入室する',keys:[],pt:1,note:'和室特有のルール'},
+      {sec:'個室別対応・備品',type:'穴埋',q:'個室でのみ貸し出せる備品を4つ以上答えよ。',choices:[],answer:'ブランケット・モバイルバッテリー・スリッパ・トランプ',keys:['ブランケット','モバイルバッテリー','スリッパ','トランプ'],pt:2,note:'ラウンジでは貸出不可'},
+      {sec:'個室別対応・備品',type:'○×',q:'R9A1の担当者はラウンジ席と個室の両方を担当する。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'R9A1特有の業務形態'},
+      {sec:'個室別対応・備品',type:'4択',q:'個室の照明を暗くしてほしいというお客様の要望への対応はどれか？',choices:['対応不可と伝える','センターに依頼する','個室内の調光器で調節する','マネージャーを呼ぶ'],answer:'個室内の調光器で調節する',keys:[],pt:1,note:'個室内は調光器で独自調節可能'},
+      {sec:'スイート・パーティ対応',type:'4択',q:'スイートルーム利用時に部屋代に含まれるサービスはどれか？',choices:['テキーラ1本','ドゥッツ1本（サービスシャンパン）','フルーツ盛り','ウイスキー1本'],answer:'ドゥッツ1本（サービスシャンパン）',keys:[],pt:1,note:'部屋付きシャンパンの把握'},
+      {sec:'スイート・パーティ対応',type:'穴埋',q:'スイートで部屋付きシャンパンを提供する際の文言の空欄を答えよ：「こちらのお部屋にシャンパンが一本＿＿でございますが…」',choices:[],answer:'サービスで付いております',keys:['サービス','付いております'],pt:1,note:'定型フレーズを正確に'},
+      {sec:'スイート・パーティ対応',type:'○×',q:'パーティスイートでは原則ウェイターを2名配置してオペレーションを行う。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'大人数対応のため2名体制'},
+      {sec:'スイート・パーティ対応',type:'4択',q:'8名以上のスイート予約でのサービスシャンパンとして提供するものはどれか？',choices:['ドゥッツ通常ボトル','ドゥッツマグナム','クリスタル','ドンペリ'],answer:'ドゥッツマグナム',keys:[],pt:1,note:'8名以上はマグナムに変わる'},
+      {sec:'ボトル・フード・禁止事項',type:'4択',q:'個室でボトルオーダーを受けた際インカムで伝えるべき情報はどれか？',choices:['値段・銘柄・人数','卓番・銘柄・何本目か','銘柄・本数・割り方','人数・銘柄・時刻'],answer:'卓番・銘柄・何本目か',keys:[],pt:1,note:'ラウンジと同じ3点'},
+      {sec:'ボトル・フード・禁止事項',type:'穴埋',q:'フードが頼まれた際、伝票の一行目には何と書くか？',choices:[],answer:'フード',keys:['フード'],pt:1,note:'フード伝票の書き方'},
+      {sec:'ボトル・フード・禁止事項',type:'○×',q:'お客様同士のみの写真撮影は問題ないが、女性とのツーショットや動画撮影は禁止でセンターへ報告が必要。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'プライバシー・ルール遵守'},
+      {sec:'ボトル・フード・禁止事項',type:'4択',q:'卓内で女性への過度な接触が見られた場合の正しい対応はどれか？',choices:['ウェイターが直接注意する','そのまま様子を見る','即座にセンターへ報告する','エスコートに任せる'],answer:'即座にセンターへ報告する',keys:[],pt:1,note:'センター・マネージャーが対応'},
+      {sec:'退店・その他対応',type:'穴埋',q:'タクシーを依頼された際のインカム報告の形式を答えよ。',choices:[],answer:'〇〇卓、〇〇卓様がタクシーを〇台止めてほしいそうです',keys:['卓','タクシー','台'],pt:1,note:'卓番と台数を必ず伝える'},
+      {sec:'退店・その他対応',type:'4択',q:'運転代行サービスを依頼された際、お客様に確認すべき5点はどれか？',choices:['名前・車の場所・行き先・車種・時間','名前・人数・行き先・車種・時間','名前・連絡先・車の場所・行き先・時間','名前・車の場所・行き先・連絡先・時間'],answer:'名前・車の場所・行き先・車種・時間',keys:[],pt:1,note:'5点すべて必要'},
+      {sec:'退店・その他対応',type:'○×',q:'ゲストアウト後は即座に忘れ物チェックを行い、テーブル上・下、ソファの隙間・横を確認する。',choices:['○','×'],answer:'○',keys:[],pt:1,note:'4箇所の確認が基本'},
+      {sec:'退店・その他対応',type:'穴埋',q:'個室でフルーツ盛りを頼まれた際、卓に準備するものを答えよ。',choices:[],answer:'姫フォーク入れに姫フォーク（人数+2本）・フルーツトング×1',keys:['姫フォーク','フルーツトング'],pt:2,note:'備品準備の正確な把握'},
+    ]}
+};
+
+let S={selectedTest:null,mode:'all',selectedCat:null,questions:[],current:0,score:0,sessionWrong:[],answered:false,
+  history:JSON.parse(localStorage.getItem('bk_h3')||'{}'),
+  weakSet:JSON.parse(localStorage.getItem('bk_w3')||'{}')};
+function save(){localStorage.setItem('bk_h3',JSON.stringify(S.history));localStorage.setItem('bk_w3',JSON.stringify(S.weakSet));}
+
+function init(){
+  document.getElementById('homeLink').classList.remove('visible');
+  const grid=document.getElementById('testGrid');grid.innerHTML='';
+  Object.values(TESTS).forEach(t=>{
+    const h=S.history[t.id]||{correct:0,total:0};
+    const pct=h.total>0?Math.round(h.correct/h.total*100):0;
+    const wk=Object.keys(S.weakSet).filter(k=>k.startsWith(t.id+'_')).length;
+    const d=document.createElement('div');d.className='test-card';d.dataset.id=t.id;
+    const qCount = t.randomPick ? `${t.questions.length}問（毎回${t.randomPick}問ランダム出題）` : `${t.questions.length}問`;
+    d.innerHTML=`<div class="card-label">${t.label}</div><div class="card-title">${t.title}</div>
+      <div class="card-meta">${qCount}${h.total>0?` / 正解率 ${pct}%`:''}${wk>0?` / 苦手 ${wk}問`:''}</div>
+      <div class="card-progress"><div class="card-progress-fill" style="width:${pct}%"></div></div>`;
+    d.onclick=()=>selectTest(t.id);grid.appendChild(d);
+  });
+  updateGlobal();
+}
+
+function updateGlobal(){
+  let t=0,c=0;Object.values(S.history).forEach(h=>{t+=h.total;c+=h.correct;});
+  document.getElementById('globalScore').innerHTML=t>0?`累計 <strong>${Math.round(c/t*100)}%</strong> 正解`:'';
+}
+
+function selectTest(id){
+  S.selectedTest=id;S.selectedCat=null;
+  document.querySelectorAll('.test-card').forEach(c=>c.classList.toggle('active',c.dataset.id===id));
+  document.getElementById('startBtn').disabled=false;
+  renderCatWrap();checkWeak();
+}
+
+
+function checkWeak(){
+  const btn=document.querySelector('[data-mode="weak"]');if(!S.selectedTest)return;
+  const n=Object.keys(S.weakSet).filter(k=>k.startsWith(S.selectedTest+'_')).length;
+  btn.textContent=n>0?`苦手問題のみ（${n}問）`:'苦手問題のみ';btn.disabled=n===0;
+}
+
+document.querySelectorAll('.mode-btn[data-mode]').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');S.mode=btn.dataset.mode;
+    checkWeak();
+  };
+});
+
+function startQuiz(){
+  const test=TESTS[S.selectedTest];
+  let qs=test.questions.map((q,i)=>({...q,id:`${test.id}_${i}`}));
+  if(S.mode==='weak'){
+    qs=qs.filter(q=>S.weakSet[q.id]);
+    if(!qs.length){alert('苦手問題がありません');return;}
+  }else if(S.mode==='random'){
+    const n=test.randomPick||15;
+    qs=qs.sort(()=>Math.random()-.5).slice(0,Math.min(n,qs.length));
+  }else{
+    qs=qs.sort(()=>Math.random()-.5);
+  }
+  S.questions=qs;S.current=0;S.score=0;S.sessionWrong=[];S.answered=false;
+  document.getElementById('homeView').style.display='none';
+  document.getElementById('resultView').classList.remove('active');
+  document.getElementById('quizView').classList.add('active');
+  document.getElementById('homeLink').classList.add('visible');
+  renderQ();
+}
+
+function renderQ(){
+  const q=S.questions[S.current];const total=S.questions.length;S.answered=false;
+  document.getElementById('qCategory').textContent=q.cat;
+  document.getElementById('qTypeBadge').textContent=q.type;
+  document.getElementById('qText').textContent=q.q;
+  document.getElementById('progressText').textContent=`${S.current+1} / ${total}`;
+  document.getElementById('scoreText').textContent=`正解 ${S.score}`;
+  document.getElementById('progressFill').style.width=`${(S.current/total)*100}%`;
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('nextBtn').className='next-btn';
+  const cw=document.getElementById('choicesWrap');const iw=document.getElementById('inputWrap');
+  if(q.type==='4択'||q.type==='○×'){
+    cw.style.display='flex';iw.style.display='none';cw.innerHTML='';
+    (q.type==='○×'?['○','×']:q.choices).forEach(opt=>{
+      const b=document.createElement('button');b.className='choice';b.textContent=opt;
+      b.onclick=()=>pick(b,opt,q);cw.appendChild(b);
+    });
+  }else{
+    cw.style.display='none';iw.style.display='block';
+    const inp=document.getElementById('answerInput');inp.value='';inp.className='answer-input';inp.focus();
+  }
+}
+
+function pick(btn,sel,q){
+  if(S.answered)return;S.answered=true;
+  const ok=sel===q.answer;record(q,ok);
+  document.querySelectorAll('.choice').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===q.answer)b.classList.add(ok?'correct':'reveal');
+    else if(b===btn&&!ok)b.classList.add('wrong');
+  });
+  showFB(ok,q);
+}
+
+function submitFree(){
+  if(S.answered)return;
+  const q=S.questions[S.current];
+  const val=document.getElementById('answerInput').value.trim();
+  if(!val)return;
+  S.answered=true;
+  const keys=q.keys||[];
+  const inp=val.replace(/[\s　]/g,'').toLowerCase();
+  const ok=keys.length>0?keys.some(k=>inp.includes(k.replace(/[\s　]/g,'').toLowerCase())):false;
+  document.getElementById('answerInput').className='answer-input '+(ok?'correct':'wrong');
+  record(q,ok);showFB(ok,q);
+}
+
+function handleEnter(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitFree();}}
+
+function record(q,ok){
+  if(!S.history[S.selectedTest])S.history[S.selectedTest]={correct:0,total:0};
+  S.history[S.selectedTest].total++;
+  if(ok){S.history[S.selectedTest].correct++;S.score++;delete S.weakSet[q.id];}
+  else{S.weakSet[q.id]=true;S.sessionWrong.push(q);}
+  save();
+}
+
+function showFB(ok,q){
+  const fb=document.getElementById('feedback');
+  fb.className='feedback show '+(ok?'correct':'wrong');
+  document.getElementById('feedbackLabel').textContent=ok?'✓ 正解':'✗ 不正解';
+  document.getElementById('feedbackAnswer').innerHTML=ok
+    ?`<span style="color:var(--text2)">${q.note}</span>`
+    :`正答：<strong style="color:var(--accent)">${q.answer}</strong>${q.note?`<br><span style="color:var(--text2)">${q.note}</span>`:''}`;
+  document.getElementById('nextBtn').className='next-btn show';
+}
+
+function nextQ(){S.current++;if(S.current>=S.questions.length)showResult();else renderQ();}
+
+function showResult(){
+  document.getElementById('quizView').classList.remove('active');
+  document.getElementById('resultView').classList.add('active');
+  const total=S.questions.length;const pct=Math.round(S.score/total*100);const pass=pct>=80;
+  document.getElementById('resultIcon').textContent=pct===100?'🏆':pass?'✨':'📚';
+  document.getElementById('resultScore').textContent=`${S.score}/${total}`;
+  document.getElementById('resultTotal').textContent=`正解率 ${pct}%　合格ライン：80%以上`;
+  document.getElementById('resultMessage').textContent=pct===100?'完璧です！':pass?'合格！よく頑張りました。':'苦手問題を復習しましょう。';
+  const h=S.history[S.selectedTest]||{correct:0,total:0};
+  const cum=h.total>0?Math.round(h.correct/h.total*100):0;
+  document.getElementById('resultBreakdown').innerHTML=`
+    <div class="breakdown-title">セッション結果</div>
+    <div class="breakdown-row"><span class="breakdown-name">正解数</span><span class="breakdown-val ${pass?'ok':'ng'}">${S.score} / ${total}問</span></div>
+    <div class="breakdown-row"><span class="breakdown-name">正解率</span><span class="breakdown-val ${pass?'ok':'ng'}">${pct}%</span></div>
+    <div class="breakdown-row"><span class="breakdown-name">累計正解率</span><span class="breakdown-val">${cum}%</span></div>
+    <div class="breakdown-row"><span class="breakdown-name">苦手問題</span><span class="breakdown-val ${S.sessionWrong.length>0?'ng':'ok'}">${S.sessionWrong.length}問</span></div>`;
+  if(S.sessionWrong.length>0){
+    document.getElementById('wrongList').style.display='block';
+    document.getElementById('wrongItems').innerHTML=S.sessionWrong.map(q=>`
+      <div class="wrong-item">
+        <div class="wrong-item-q">${q.cat}｜${q.q.substring(0,40)}${q.q.length>40?'…':''}</div>
+        <div class="wrong-item-a">正答：${q.answer.substring(0,60)}${q.answer.length>60?'…':''}</div>
+      </div>`).join('');
+    document.getElementById('retryWeakBtn').style.display='block';
+  }else{
+    document.getElementById('wrongList').style.display='none';
+    document.getElementById('retryWeakBtn').style.display='none';
+  }
+}
+
+function retryWeak(){S.mode='weak';startQuiz();}
+
+function goHome(){
+  document.getElementById('resultView').classList.remove('active');
+  document.getElementById('quizView').classList.remove('active');
+  document.getElementById('homeView').style.display='block';
+  document.getElementById('homeLink').classList.remove('visible');
+  init();
+}
+
+function confirmGoHome(){
+  if(!S.answered&&S.current>0){
+    if(!confirm('学習を中断してホームへ戻りますか？\n（現在の回答は記録されません）'))return;
+  }
+  goHome();
+}
+
+init();
+</script>
+</body>
+</html>
